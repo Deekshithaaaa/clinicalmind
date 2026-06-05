@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: clinicalmind-postgres
+    environment:
+      POSTGRES_USER: clinicalmind
+      POSTGRES_PASSWORD: clinicalmind123
+      POSTGRES_DB: clinicalmind
+    ports:
+      - "5433:5432"
+    volumes:
+      - clinicalmind_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clinicalmind"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow-init:
+    image: apache/airflow:2.8.1
+    container_name: clinicalmind-airflow-init
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://clinicalmind:clinicalmind123@postgres:5432/clinicalmind
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    command: db init
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  airflow-webserver:
+    image: apache/airflow:2.8.1
+    container_name: clinicalmind-airflow-webserver
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://clinicalmind:clinicalmind123@postgres:5432/clinicalmind
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data
+      - ./ingestion:/opt/airflow/ingestion
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.1
+    container_name: clinicalmind-airflow-scheduler
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://clinicalmind:clinicalmind123@postgres:5432/clinicalmind
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data
+      - ./ingestion:/opt/airflow/ingestion
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: scheduler
+
+volumes:
+  clinicalmind_postgres_data:
