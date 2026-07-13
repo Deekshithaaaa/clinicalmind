@@ -1,0 +1,10 @@
+{
+  "semantic": {
+    "faithfulness": 0.7003500203500205,
+    "answer_relevancy": 0.972409955704738
+  },
+  "hybrid": {
+    "faithfulness": 0.6468033915402337,
+    "answer_relevancy": 0.9000901082493851
+  }
+}
